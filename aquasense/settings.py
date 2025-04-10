@@ -10,7 +10,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-+_ezyesvw8lwbv=gtb)y%
 # 🔧 Set debug mode based on environment
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["https://aquasense-ks5j.onrender.com/"]
 
 # Application definition
 INSTALLED_APPS = [
@@ -53,12 +53,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'aquasense.wsgi.application'
-
-# Database
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'aquasense',  # Your database name
+        'USER': 'aquasense_user',  # Your database user
+        'PASSWORD': 'FnYSLkL3bJW5VFLQ3hMMD5BNLWOqEsna',  # Your database password
+        'HOST': 'dpg-cvrud43uibrs73brjol0-a.oregon-postgres.render.com',  # Database host
+        'PORT': '5432',  # Default PostgreSQL port
     }
 }
 
