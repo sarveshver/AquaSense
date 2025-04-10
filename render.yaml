@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: aquasense
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn aquasense.wsgi:application
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: aquasense.settings
+      - key: django-insecure-+_ezyesvw8lwbv=gtb)y%$w8n7-p!(mp_w=69e@#9(_a#2b&=2
+        value: your-secret-key-here
+      - key: DEBUG
+        value: False
