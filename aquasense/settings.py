@@ -8,9 +8,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-+_ezyesvw8lwbv=gtb)y%$w8n7-p!(mp_w=69e@#9(_a#2b&=2')
 
 # 🔧 Set debug mode based on environment
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+DEBUG = True
 
-ALLOWED_HOSTS = ["https://aquasense-ks5j.onrender.com/"]
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 INSTALLED_APPS = [
