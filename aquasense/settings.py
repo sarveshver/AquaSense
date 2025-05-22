@@ -56,10 +56,10 @@ WSGI_APPLICATION = 'aquasense.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'aquasense',  # Your database name
-        'USER': 'aquasense_user',  # Your database user
-        'PASSWORD': 'FnYSLkL3bJW5VFLQ3hMMD5BNLWOqEsna',  # Your database password
-        'HOST': 'dpg-cvrud43uibrs73brjol0-a.oregon-postgres.render.com',  # Database host
+       'NAME': 'aquasense_0nqy',        
+        'USER': 'aquasense_0nqy_user',
+        'PASSWORD': 'SZC38I85lroWV5xhkf8W9l1sSEZFhBXC',
+        'HOST': 'dpg-d0nlg6bipnbc73946430-a.oregon-postgres.render.com',
         'PORT': '5432',  # Default PostgreSQL port
     }
 }
