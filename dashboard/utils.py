@@ -45,3 +45,25 @@ def get_historical_data(hours=24):
         'water_temp': [d.water_temp for d in data],
         'air_temp': [d.air_temp for d in data]
     }
+
+def get_data_by_date(date_str):
+    """Returns all data from SensorData for the given date."""
+    try:
+        selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        data = SensorData.objects.filter(timestamp__date=selected_date).order_by('timestamp')
+        return {
+            'timestamps': [d.timestamp.strftime("%H:%M") for d in data],
+            'tds': [d.tds for d in data],
+            'turbidity': [d.turbidity for d in data],
+            'water_temp': [d.water_temp for d in data],
+            'air_temp': [d.air_temp for d in data]
+        }
+    except Exception as e:
+        print(f"❌ Error filtering by date: {e}")
+        return {
+            'timestamps': [],
+            'tds': [],
+            'turbidity': [],
+            'water_temp': [],
+            'air_temp': []
+        }

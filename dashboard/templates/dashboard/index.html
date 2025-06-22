@@ -304,9 +304,23 @@
           <h2>Water Quality Dashboard</h2>
           <div class="user-info">
             <img src="https://ui-avatars.com/api/?name=Admin+User&background=3498db&color=fff" alt="User">
-            <span>Admin User</span>
+            <span>WELCOME</span>
           </div>
         </div>
+
+
+<div class="mb-4 d-flex align-items-center gap-3" style="max-width: 300px;">
+  <label for="date-filter" class="form-label mb-0 fw-semibold text-dark" style="white-space: nowrap;">
+    <i class="bi bi-calendar-check-fill me-1 text-primary"></i> Select Date:
+  </label>
+  <input type="date" id="date-filter" class="form-control shadow-sm border-0 rounded-3" 
+         style="background-color: #ecf0f1; font-weight: 500; cursor: pointer;" />
+</div>
+<div class="mb-3">
+  <button class="btn btn-outline-success" onclick="downloadExcel()">
+    <i class="bi bi-file-earmark-excel"></i> Download Excel
+  </button>
+</div>
 
         <!-- Sensor Data Cards -->
         <div class="row">
@@ -385,6 +399,126 @@
             </div>
           </div>
         </div>
+<!-- 💧 Sensor Map Card -->
+<div class="dashboard-card p-0 overflow-hidden" style="height: 450px;">
+  <!-- Card header -->
+  <div class="card-header d-flex justify-content-between align-items-center bg-white">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-geo-alt-fill text-primary fs-5"></i>
+      <h5 class="mb-0">Sensor Locations</h5>
+      <span id="map-live-badge"
+            class="badge rounded-pill bg-success text-uppercase fw-semibold small">Live</span>
+    </div>
+    <button class="btn btn-sm btn-outline-secondary" id="map-fullscreen-btn">
+      <i class="bi bi-arrows-fullscreen"></i>
+    </button>
+  </div>
+
+  <!-- Map canvas -->
+  <div id="sensor-map" class="w-100 h-100"></div>
+</div>
+
+<!-- Leaflet & fullscreen plugin -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.fullscreen@1.6.0/Control.FullScreen.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.fullscreen@1.6.0/Control.FullScreen.js"></script>
+
+<style>
+  /* Soft shadow + rounded edges on leaflet popups */
+  .leaflet-popup-content-wrapper,
+  .leaflet-popup-tip {
+    border-radius: 0.75rem;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  }
+  /* Coloured legend chips */
+  .legend-chip {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border-radius: 3px;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+  /* ---------- 1. Initialise map ---------- */
+  const map = L.map('sensor-map', {
+    fullscreenControl: true,          // plugin button inside map
+    fullscreenControlOptions: { position: 'topleft' }
+  }).setView([13.0827, 80.2707], 6);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  /* ---------- 2. Sensor data (replace with live fetch) ---------- */
+  const sensors = [
+    { id: 'S-001', name: 'Chennai Plant',   lat: 13.0827, lng: 80.2707, tds: 310, turb: 1.2 },
+    { id: 'S-002', name: 'Bangalore Site', lat: 12.9716, lng: 77.5946, tds: 440, turb: 2.9 },
+    { id: 'S-003', name: 'Coimbatore Lab', lat: 11.0168, lng: 76.9558, tds: 520, turb: 3.5 }
+  ];
+
+  /* ---------- 3. Utility: colour by TDS ---------- */
+  function tdsColor(val) {
+    if (val < 300) return '#2ecc71';   // green
+    if (val < 400) return '#f1c40f';   // amber
+    return '#e74c3c';                  // red
+  }
+
+  /* ---------- 4. Add markers ---------- */
+  sensors.forEach(s => {
+    const marker = L.circleMarker([s.lat, s.lng], {
+      radius: 10,
+      weight: 2,
+      color: '#fff',
+      fillColor: tdsColor(s.tds),
+      fillOpacity: 0.9
+    }).addTo(map);
+
+    marker.bindPopup(`
+      <div class="fw-semibold mb-1">${s.name}</div>
+      <div class="small text-muted">ID: ${s.id}</div>
+      <hr class="my-1">
+      <div>TDS&nbsp;<span class="fw-bold">${s.tds}</span>&nbsp;ppm</div>
+      <div>Turbidity&nbsp;<span class="fw-bold">${s.turb.toFixed(1)}</span>&nbsp;NTU</div>
+    `);
+  });
+
+  /* ---------- 5. Legend ---------- */
+  const legend = L.control({ position: 'bottomleft' });
+  legend.onAdd = () => {
+    const div = L.DomUtil.create('div', 'p-2 bg-white rounded shadow-sm small');
+    div.innerHTML = `
+      <div class="mb-1 fw-semibold">TDS Level</div>
+      <div><span class="legend-chip" style="background:#2ecc71"></span> < 300&nbsp;ppm</div>
+      <div><span class="legend-chip" style="background:#f1c40f"></span> 300-400&nbsp;ppm</div>
+      <div><span class="legend-chip" style="background:#e74c3c"></span> > 400&nbsp;ppm</div>
+    `;
+    return div;
+  };
+  legend.addTo(map);
+
+  /* ---------- 6. Optional: sync live badge ---------- */
+  const badge = document.getElementById('map-live-badge');
+  // Example toggle when offline (hook into your existing offline logic)
+  window.addEventListener('offline', () => {
+    badge.textContent = 'Offline';
+    badge.classList.replace('bg-success', 'bg-secondary');
+  });
+  window.addEventListener('online', () => {
+    badge.textContent = 'Live';
+    badge.classList.replace('bg-secondary', 'bg-success');
+  });
+
+  /* ---------- 7. External fullscreen button (header) ---------- */
+  document.getElementById('map-fullscreen-btn').onclick = () => {
+    map.toggleFullscreen();
+  };
+});
+</script>
 
         <!-- System Status and Predictions -->
         <div class="row mt-4">
@@ -451,265 +585,254 @@
   <!-- Main Dashboard Script -->
   <script>
     // Global variables
-    let charts = {};
-    let lastDataTimestamp = null;
+let charts = {};
+let lastDataTimestamp = null;
+let selectedDate = null;
 
-    // Initialize the dashboard when DOM is loaded
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize tooltips
-        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-
-        // Initialize all charts
-        initializeCharts();
-
-        // Load initial data
-        fetchData();
-
-        // Set up auto-refresh every 30 seconds
-        setInterval(fetchData, 30000);
+// Initialize the dashboard when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 
-    // Initialize all charts with empty data
-    function initializeCharts() {
-        charts = {
-            tds: createChart('chart-tds', 'TDS (ppm)', '#3498db'),
-            turbidity: createChart('chart-turbidity', 'Turbidity (NTU)', '#e74c3c'),
-            water: createChart('chart-water', 'Water Temp (°C)', '#f39c12'),
-            air: createChart('chart-air', 'Air Temp (°C)', '#9b59b6')
-        };
-    }
+    // Initialize all charts
+    initializeCharts();
 
-    // Create a new Chart.js instance
-    function createChart(canvasId, label, color) {
-        const ctx = document.getElementById(canvasId).getContext('2d');
-        return new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: label,
-                    data: [],
-                    borderColor: color,
-                    backgroundColor: hexToRgba(color, 0.1),
-                    borderWidth: 2,
-                    tension: 0.3,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                    }
-                },
-                scales: {
-                    x: { grid: { display: false } },
-                    y: {
-                        beginAtZero: false,
-                        grid: { color: 'rgba(0, 0, 0, 0.05)' }
-                    }
-                },
-                interaction: {
-                    mode: 'nearest',
-                    axis: 'x',
-                    intersect: false
-                }
-            }
+    // Load initial data
+    fetchData();
+
+    // Set up auto-refresh every 30 seconds
+    setInterval(fetchData, 30000);
+
+    // Set up date filter change
+    const dateInput = document.getElementById('date-filter');
+    if (dateInput) {
+        dateInput.addEventListener('change', function () {
+            selectedDate = this.value || null;
+            fetchData();
         });
     }
+});
 
-    // Fetch data from Django backend
-    function fetchData() {
-        fetch('/update/')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                // Only update if we have new data
-                if (data.live_data && (!lastDataTimestamp || data.live_data.timestamp !== lastDataTimestamp)) {
-                    updateDashboard(data);
-                    lastDataTimestamp = data.live_data.timestamp;
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching data:', error);
-                // Show error alert
-                addAlert('Error fetching data. Showing cached information.', 'danger');
-            });
-    }
+function initializeCharts() {
+    charts = {
+        tds: createChart('chart-tds', 'TDS (ppm)', '#3498db'),
+        turbidity: createChart('chart-turbidity', 'Turbidity (NTU)', '#e74c3c'),
+        water: createChart('chart-water', 'Water Temp (°C)', '#f39c12'),
+        air: createChart('chart-air', 'Air Temp (°C)', '#9b59b6')
+    };
+}
 
-    // Update all dashboard components with new data
-    function updateDashboard(data) {
-        if (!data.live_data || !data.historical_data || !data.predictions) {
-            console.error('Incomplete data received:', data);
-            return;
+function createChart(canvasId, label, color) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    return new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: label,
+                data: [],
+                borderColor: color,
+                backgroundColor: hexToRgba(color, 0.1),
+                borderWidth: 2,
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { mode: 'index', intersect: false }
+            },
+            scales: {
+                x: { grid: { display: false } },
+                y: {
+                    beginAtZero: false,
+                    grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
         }
+    });
+}
 
-        // Update current values
+function fetchData() {
+    const url = selectedDate ? `/update/?date=${selectedDate}` : '/update/';
+
+    fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            updateDashboard(data);
+            if (data.live_data?.timestamp) {
+                lastDataTimestamp = data.live_data.timestamp;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching data:', error);
+            addAlert('Error fetching data. Showing cached information.', 'danger');
+        });
+}
+
+function updateDashboard(data) {
+    // Live data (only if no date selected)
+    if (!selectedDate && data.live_data) {
         document.getElementById('tds-value').textContent = data.live_data.tds;
         document.getElementById('turbidity-value').textContent = data.live_data.turbidity.toFixed(1);
         document.getElementById('water-temp').textContent = data.live_data.water_temp.toFixed(1);
         document.getElementById('air-temp').textContent = data.live_data.air_temp.toFixed(1);
 
-        // Update status indicators
         updateStatusIndicator('tds-status', getTDSStatus(data.live_data.tds));
         updateStatusIndicator('turbidity-status', getTurbidityStatus(data.live_data.turbidity));
         updateStatusIndicator('water-temp-status', getTempStatus(data.live_data.water_temp, 'water'));
         updateStatusIndicator('air-temp-status', getTempStatus(data.live_data.air_temp, 'air'));
 
-        // Update system status
         document.getElementById('water-status').textContent = getTDSStatus(data.live_data.tds).label;
         document.getElementById('water-status').className = `status-indicator ${getTDSStatus(data.live_data.tds).class}`;
 
-        const sensorStatus = data.live_data.turbidity > 4 || data.live_data.tds > 500 ?
-            { label: "Attention Needed", class: "status-critical" } :
-            { label: "All Normal", class: "status-good" };
+        const sensorStatus = data.live_data.turbidity > 4 || data.live_data.tds > 500
+            ? { label: "Attention Needed", class: "status-critical" }
+            : { label: "All Normal", class: "status-good" };
 
         document.getElementById('sensor-status').textContent = sensorStatus.label;
         document.getElementById('sensor-status').className = `status-indicator ${sensorStatus.class}`;
 
-        // Update predictions
-        if (data.predictions.tds && data.predictions.turbidity) {
-            document.getElementById('predicted-tds').textContent = `${Math.round(data.predictions.tds)} ppm`;
-            document.getElementById('predicted-turbidity').textContent = `${data.predictions.turbidity.toFixed(1)} NTU`;
-            
-            // Update trend indicator
-            const trendElement = document.querySelector('#ai-predictions .status-item:last-child .status-indicator');
-            trendElement.textContent = data.predictions.trend.charAt(0).toUpperCase() + data.predictions.trend.slice(1);
-            trendElement.className = `status-indicator ${
-                data.predictions.trend === 'improving' ? 'status-good' : 
-                data.predictions.trend === 'stable' ? 'status-warning' : 'status-critical'
-            }`;
-        }
-
-        // Update charts
-        updateCharts(data.historical_data);
-
-        // Update last updated time
-        document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
-
-        // Check for alerts
         checkForAlerts(data.live_data);
+    } else {
+        document.getElementById('tds-value').textContent = "--";
+        document.getElementById('turbidity-value').textContent = "--";
+        document.getElementById('water-temp').textContent = "--";
+        document.getElementById('air-temp').textContent = "--";
+        document.getElementById('water-status').textContent = "Historical";
+        document.getElementById('water-status').className = "status-indicator status-warning";
+        document.getElementById('sensor-status').textContent = "Viewing Past";
+        document.getElementById('sensor-status').className = "status-indicator status-warning";
+        document.getElementById('alerts-container').innerHTML = '';
+        addAlert('You are viewing historical data.', 'info');
     }
 
-    // Update all charts with new data
-    function updateCharts(historicalData) {
-        if (!historicalData) return;
+    if (data.predictions && data.predictions.tds && data.predictions.turbidity && !selectedDate) {
+        document.getElementById('predicted-tds').textContent = `${Math.round(data.predictions.tds)} ppm`;
+        document.getElementById('predicted-turbidity').textContent = `${data.predictions.turbidity.toFixed(1)} NTU`;
 
-        // Update each chart
-        updateChart(charts.tds, historicalData.timestamps, historicalData.tds);
-        updateChart(charts.turbidity, historicalData.timestamps, historicalData.turbidity);
-        updateChart(charts.water, historicalData.timestamps, historicalData.water_temp);
-        updateChart(charts.air, historicalData.timestamps, historicalData.air_temp);
+        const trendElement = document.querySelector('#ai-predictions .status-item:last-child .status-indicator');
+        trendElement.textContent = data.predictions.trend;
+        trendElement.className = `status-indicator ${
+            data.predictions.trend === 'improving' ? 'status-good' :
+            data.predictions.trend === 'stable' ? 'status-warning' : 'status-critical'
+        }`;
     }
 
-    // Update a single chart with new data
-    function updateChart(chart, labels, data) {
-        chart.data.labels = labels;
-        chart.data.datasets[0].data = data;
-        chart.update();
+    updateCharts(data.historical_data);
+    document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+}
+
+function updateCharts(historicalData) {
+    if (!historicalData) return;
+    updateChart(charts.tds, historicalData.timestamps, historicalData.tds);
+    updateChart(charts.turbidity, historicalData.timestamps, historicalData.turbidity);
+    updateChart(charts.water, historicalData.timestamps, historicalData.water_temp);
+    updateChart(charts.air, historicalData.timestamps, historicalData.air_temp);
+}
+
+function updateChart(chart, labels, data) {
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = data;
+    chart.update();
+}
+
+function getTDSStatus(value) {
+    if (value < 300) return { label: "Excellent", class: "status-good" };
+    if (value < 350) return { label: "Good", class: "status-good" };
+    if (value < 400) return { label: "Fair", class: "status-warning" };
+    return { label: "Poor", class: "status-critical" };
+}
+
+function getTurbidityStatus(value) {
+    if (value < 1.0) return { label: "Crystal", class: "status-good" };
+    if (value < 2.0) return { label: "Clear", class: "status-good" };
+    if (value < 3.0) return { label: "Cloudy", class: "status-warning" };
+    return { label: "Murky", class: "status-critical" };
+}
+
+function getTempStatus(value, type) {
+    if (type === 'water') {
+        if (value < 10 || value > 30) return { label: "Danger", class: "status-critical" };
+        if (value < 15 || value > 25) return { label: "Warning", class: "status-warning" };
+        return { label: "Ideal", class: "status-good" };
+    } else {
+        if (value < 15 || value > 35) return { label: "Extreme", class: "status-critical" };
+        if (value < 20 || value > 30) return { label: "Uncomfortable", class: "status-warning" };
+        return { label: "Comfortable", class: "status-good" };
+    }
+}
+
+function updateStatusIndicator(elementId, status) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = status.label;
+        element.className = `status-indicator ${status.class}`;
+    }
+}
+
+function checkForAlerts(liveData) {
+    const alertsContainer = document.getElementById('alerts-container');
+    alertsContainer.innerHTML = '';
+
+    if (liveData.tds > 350) {
+        addAlert(`Elevated TDS level detected (${liveData.tds} ppm). Consider water treatment.`, 'warning');
+    }
+    if (liveData.turbidity > 2.5) {
+        addAlert(`High turbidity detected (${liveData.turbidity.toFixed(1)} NTU). Check filtration system.`, 'warning');
+    }
+    if (liveData.water_temp < 15 || liveData.water_temp > 25) {
+        addAlert(`Water temperature out of ideal range (${liveData.water_temp.toFixed(1)}°C).`, 'warning');
     }
 
-    // Status evaluation functions
-    function getTDSStatus(value) {
-        if (value < 300) return { label: "Excellent", class: "status-good" };
-        if (value < 350) return { label: "Good", class: "status-good" };
-        if (value < 400) return { label: "Fair", class: "status-warning" };
-        return { label: "Poor", class: "status-critical" };
+    if (alertsContainer.children.length === 0) {
+        addAlert('All systems operating normally. No issues detected.', 'success');
     }
+}
 
-    function getTurbidityStatus(value) {
-        if (value < 1.0) return { label: "Crystal", class: "status-good" };
-        if (value < 2.0) return { label: "Clear", class: "status-good" };
-        if (value < 3.0) return { label: "Cloudy", class: "status-warning" };
-        return { label: "Murky", class: "status-critical" };
-    }
+function addAlert(message, type) {
+    const alertsContainer = document.getElementById('alerts-container');
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} d-flex align-items-center`;
+    alertDiv.setAttribute('role', 'alert');
 
-    function getTempStatus(value, type) {
-        if (type === 'water') {
-            if (value < 10 || value > 30) return { label: "Danger", class: "status-critical" };
-            if (value < 15 || value > 25) return { label: "Warning", class: "status-warning" };
-            return { label: "Ideal", class: "status-good" };
-        } else {
-            if (value < 15 || value > 35) return { label: "Extreme", class: "status-critical" };
-            if (value < 20 || value > 30) return { label: "Uncomfortable", class: "status-warning" };
-            return { label: "Comfortable", class: "status-good" };
-        }
-    }
+    let iconClass = 'bi-info-circle-fill';
+    if (type === 'warning') iconClass = 'bi-exclamation-triangle-fill';
+    if (type === 'danger') iconClass = 'bi-exclamation-octagon-fill';
+    if (type === 'success') iconClass = 'bi-check-circle-fill';
 
-    // Update a status indicator element
-    function updateStatusIndicator(elementId, status) {
-        const element = document.getElementById(elementId);
-        if (element) {
-            element.textContent = status.label;
-            element.className = `status-indicator ${status.class}`;
-        }
-    }
+    alertDiv.innerHTML = `
+        <i class="bi ${iconClass} me-2"></i>
+        <div>${message}</div>
+    `;
+    alertsContainer.appendChild(alertDiv);
+}
 
-    // Check sensor values for potential alerts
-    function checkForAlerts(liveData) {
-        const alertsContainer = document.getElementById('alerts-container');
-        alertsContainer.innerHTML = ''; // Clear existing alerts
-
-        // Check TDS level
-        if (liveData.tds > 350) {
-            addAlert(`Elevated TDS level detected (${liveData.tds} ppm). Consider water treatment.`, 'warning');
-        }
-
-        // Check Turbidity level
-        if (liveData.turbidity > 2.5) {
-            addAlert(`High turbidity detected (${liveData.turbidity.toFixed(1)} NTU). Check filtration system.`, 'warning');
-        }
-
-        // Check Water Temperature
-        if (liveData.water_temp < 15 || liveData.water_temp > 25) {
-            addAlert(`Water temperature out of ideal range (${liveData.water_temp.toFixed(1)}°C).`, 'warning');
-        }
-
-        // If no alerts, show a positive message
-        if (alertsContainer.children.length === 0) {
-            addAlert('All systems operating normally. No issues detected.', 'success');
-        }
-    }
-
-    // Add an alert to the alerts container
-    function addAlert(message, type) {
-        const alertsContainer = document.getElementById('alerts-container');
-        const alertDiv = document.createElement('div');
-        
-        alertDiv.className = `alert alert-${type} d-flex align-items-center`;
-        alertDiv.setAttribute('role', 'alert');
-        
-        let iconClass = 'bi-info-circle-fill';
-        if (type === 'warning') iconClass = 'bi-exclamation-triangle-fill';
-        if (type === 'danger') iconClass = 'bi-exclamation-octagon-fill';
-        if (type === 'success') iconClass = 'bi-check-circle-fill';
-        
-        alertDiv.innerHTML = `
-            <i class="bi ${iconClass} me-2"></i>
-            <div>${message}</div>
-        `;
-        
-        alertsContainer.appendChild(alertDiv);
-    }
-
-    // Helper function to convert hex to rgba
-    function hexToRgba(hex, alpha) {
-        const r = parseInt(hex.slice(1, 3), 16);
-        const g = parseInt(hex.slice(3, 5), 16);
-        const b = parseInt(hex.slice(5, 7), 16);
-        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    }
+function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+function downloadExcel() {
+    const date = document.getElementById('date-filter')?.value || '';
+    const url = `/download-excel/${date ? '?date=' + date : ''}`;
+    window.location.href = url;
+}
   </script>
 </body>
 </html>
